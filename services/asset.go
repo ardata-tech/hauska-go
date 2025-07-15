@@ -4,106 +4,141 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ardata-tech/hauska-go/contracts"
 	"github.com/ardata-tech/hauska-go/types"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 // AssetService implements asset registry operations
 type AssetService struct {
-	// TODO: Add contract binding and configuration
-	// assetRegistry *contracts.HauskaAssetRegistry
-	// config        *hauska.Config
+	client        *ethclient.Client
+	assetRegistry *contracts.HauskaAssetRegistry
+	assetNFT      *contracts.HauskaAssetNFT
+	auth          *bind.TransactOpts
 }
 
 // NewAssetService creates a new asset service instance
-func NewAssetService() *AssetService {
-	return &AssetService{
-		// TODO: Initialize with contract binding
+func NewAssetService(client *ethclient.Client, assetRegistryAddr, assetNFTAddr common.Address, auth *bind.TransactOpts) (*AssetService, error) {
+	assetRegistry, err := contracts.NewHauskaAssetRegistry(assetRegistryAddr, client)
+	if err != nil {
+		return nil, err
 	}
+
+	assetNFT, err := contracts.NewHauskaAssetNFT(assetNFTAddr, client)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AssetService{
+		client:        client,
+		assetRegistry: assetRegistry,
+		assetNFT:      assetNFT,
+		auth:          auth,
+	}, nil
 }
 
 // RegisterAsset registers a new asset in the registry
 func (s *AssetService) RegisterAsset(ctx context.Context, orgContract string, asset *types.VerifiedDigitalAsset, creator string) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate parameters
-	// 2. Call assetRegistry.RegisterAsset()
-	// 3. Wait for transaction confirmation
-	// 4. Parse events
-	// 5. Return transaction result
+	// Convert to contract struct
+	contractAsset := contracts.IHauskaStructsVerifiedDigitalAsset{
+		AssetId:                asset.AssetID,
+		Creator:                asset.Creator,
+		Owner:                  asset.Owner,
+		Partner:                asset.Partner,
+		IpfsHash:               asset.IPFSHash,
+		MetadataHash:           asset.MetadataHash,
+		AssetHash:              asset.AssetHash,
+		Version:                asset.Version,
+		IsVerified:             asset.IsVerified,
+		CreationTime:           asset.CreationTime,
+		LastTransferTime:       asset.LastTransferTime,
+		Price:                  asset.Price,
+		Encrypted:              asset.Encrypted,
+		CanBeLicensed:          asset.CanBeLicensed,
+		FxPool:                 uint8(asset.FxPool),
+		EventTimestamp:         asset.EventTimestamp,
+		GeographicRestrictions: convertCountryCodes(asset.GeographicRestrictions),
+	}
 
-	return nil, types.ErrNotImplemented
+	tx, err := s.assetRegistry.RegisterAsset(s.auth, contractAsset, common.HexToAddress(creator))
+	if err != nil {
+		return nil, err
+	}
+
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
 // GetAsset returns asset details by organization and asset ID
 func (s *AssetService) GetAsset(ctx context.Context, orgContract string, assetID *big.Int) (*types.VerifiedDigitalAsset, error) {
-	// TODO: Implement contract call
-	// 1. Call assetRegistry.GetAsset()
-	// 2. Convert to VerifiedDigitalAsset struct
-	// 3. Return asset details
+	contractAsset, err := s.assetRegistry.GetAsset(&bind.CallOpts{Context: ctx}, common.HexToAddress(orgContract), assetID)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	// Convert from contract struct to types
+	asset := &types.VerifiedDigitalAsset{
+		AssetID:                contractAsset.AssetId,
+		Creator:                contractAsset.Creator,
+		Owner:                  contractAsset.Owner,
+		Partner:                contractAsset.Partner,
+		IPFSHash:               contractAsset.IpfsHash,
+		MetadataHash:           contractAsset.MetadataHash,
+		AssetHash:              contractAsset.AssetHash,
+		Version:                contractAsset.Version,
+		IsVerified:             contractAsset.IsVerified,
+		CreationTime:           contractAsset.CreationTime,
+		LastTransferTime:       contractAsset.LastTransferTime,
+		Price:                  contractAsset.Price,
+		Encrypted:              contractAsset.Encrypted,
+		CanBeLicensed:          contractAsset.CanBeLicensed,
+		FxPool:                 types.FxPool(contractAsset.FxPool),
+		EventTimestamp:         contractAsset.EventTimestamp,
+		GeographicRestrictions: convertCountryCodesFromContract(contractAsset.GeographicRestrictions),
+	}
+
+	return asset, nil
 }
 
 // VerifyAsset verifies an asset (marks it as verified)
 func (s *AssetService) VerifyAsset(ctx context.Context, orgContract string, assetID *big.Int, verifier string) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate parameters
-	// 2. Call assetRegistry.VerifyAsset()
-	// 3. Wait for transaction confirmation
-	// 4. Return transaction result
+	tx, err := s.assetRegistry.VerifyAsset(s.auth, common.HexToAddress(orgContract), assetID, common.HexToAddress(verifier))
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
 // IsAssetVerified checks if an asset is verified
 func (s *AssetService) IsAssetVerified(ctx context.Context, orgContract string, assetID *big.Int) (bool, error) {
-	// TODO: Implement contract call
-	// 1. Call assetRegistry.IsAssetVerified()
-	// 2. Return boolean result
-
-	return false, types.ErrNotImplemented
+	return s.assetRegistry.IsAssetVerified(&bind.CallOpts{Context: ctx}, common.HexToAddress(orgContract), assetID)
 }
 
 // GetAssetsByCreator returns all assets created by a specific creator
 func (s *AssetService) GetAssetsByCreator(ctx context.Context, orgContract, creator string) ([]*big.Int, error) {
-	// TODO: Implement contract call
-	// 1. Call assetRegistry.GetAssetsByCreator()
-	// 2. Return asset IDs array
-
-	return nil, types.ErrNotImplemented
+	return s.assetRegistry.GetAssetsByCreator(&bind.CallOpts{Context: ctx}, common.HexToAddress(orgContract), common.HexToAddress(creator))
 }
 
-// TransferAssetOwnership transfers ownership of an asset to a new owner
+// TransferAssetOwnership transfers ownership of an asset
 func (s *AssetService) TransferAssetOwnership(ctx context.Context, orgContract string, assetID *big.Int, newOwner, caller string) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate parameters
-	// 2. Call assetRegistry.TransferAssetOwnership()
-	// 3. Wait for transaction confirmation
-	// 4. Return transaction result
+	tx, err := s.assetRegistry.TransferAssetOwnership(s.auth, common.HexToAddress(orgContract), assetID, common.HexToAddress(newOwner), common.HexToAddress(caller))
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
-// UpdateAsset updates asset metadata and properties
-func (s *AssetService) UpdateAsset(ctx context.Context, orgContract string, assetID *big.Int, newIPFSHash, newMetadataHash string, newPrice *big.Int, canBeLicensed bool, caller string) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate parameters
-	// 2. Call assetRegistry.UpdateAsset()
-	// 3. Wait for transaction confirmation
-	// 4. Return transaction result
-
-	return nil, types.ErrNotImplemented
-}
-
-// TransferAssetCrossOrg transfers an asset from one organization to another
+// TransferAssetCrossOrg transfers an asset between organizations
 func (s *AssetService) TransferAssetCrossOrg(ctx context.Context, fromOrg, toOrg string, assetID *big.Int, newOwner string) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate parameters
-	// 2. Call assetRegistry.TransferAssetCrossOrg()
-	// 3. Wait for transaction confirmation
-	// 4. Parse events to get new asset ID
-	// 5. Return transaction result
+	tx, err := s.assetRegistry.TransferAssetCrossOrg(s.auth, common.HexToAddress(fromOrg), common.HexToAddress(toOrg), assetID, common.HexToAddress(newOwner))
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
 // GetAssetCount returns the total number of assets for an organization
@@ -124,23 +159,53 @@ func (s *AssetService) GetAssetNFTAddress(ctx context.Context) (string, error) {
 	return "", types.ErrNotImplemented
 }
 
-// GetAssetNFTTokenID returns the NFT token ID for a specific asset
+// GetAssetNFTTokenID returns the NFT token ID for an asset
 func (s *AssetService) GetAssetNFTTokenID(ctx context.Context, orgContract string, assetID *big.Int) (*big.Int, error) {
-	// TODO: Implement contract call via AssetNFT contract
-	// 1. Get AssetNFT contract instance
-	// 2. Call assetNFT.GetTokenIdForAsset()
-	// 3. Return token ID
-
-	return nil, types.ErrNotImplemented
+	return s.assetNFT.GetTokenIdForAsset(&bind.CallOpts{Context: ctx}, common.HexToAddress(orgContract), assetID)
 }
 
-// TransferAssetNFT transfers an asset NFT to a new owner
+// TransferAssetNFT transfers an asset NFT
 func (s *AssetService) TransferAssetNFT(ctx context.Context, from, to string, tokenID *big.Int) (*types.TransactionResult, error) {
-	// TODO: Implement contract call via AssetNFT contract
-	// 1. Get AssetNFT contract instance
-	// 2. Call assetNFT.SafeTransferFrom()
-	// 3. Wait for transaction confirmation
-	// 4. Return transaction result
+	tx, err := s.assetNFT.SafeTransferFrom(s.auth, common.HexToAddress(from), common.HexToAddress(to), tokenID)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
+}
+
+// GetAssetNFTOwner returns the owner of an asset NFT
+func (s *AssetService) GetAssetNFTOwner(ctx context.Context, tokenID *big.Int) (string, error) {
+	owner, err := s.assetNFT.OwnerOf(&bind.CallOpts{Context: ctx}, tokenID)
+	if err != nil {
+		return "", err
+	}
+	return owner.Hex(), nil
+}
+
+// Helper functions
+
+func convertCountryCodes(codes []types.CountryCode) []uint8 {
+	result := make([]uint8, len(codes))
+	for i, code := range codes {
+		result[i] = uint8(code)
+	}
+	return result
+}
+
+func convertCountryCodesFromContract(codes []uint8) []types.CountryCode {
+	result := make([]types.CountryCode, len(codes))
+	for i, code := range codes {
+		result[i] = types.CountryCode(code)
+	}
+	return result
+}
+
+func (s *AssetService) waitForTransaction(ctx context.Context, txHash common.Hash) (*types.TransactionResult, error) {
+	// TODO: Implement transaction waiting and parsing
+	// This is a placeholder implementation
+	return &types.TransactionResult{
+		TxHash: txHash,
+		Status: 1,
+	}, nil
 }

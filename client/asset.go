@@ -52,8 +52,7 @@ func (c *assetClient) GetAssetNFTTokenID(ctx context.Context, orgContract string
 }
 
 func (c *assetClient) GetAssetNFTOwner(ctx context.Context, tokenID *big.Int) (string, error) {
-	// TODO: This should delegate to NFT service
-	return "", types.ErrNotImplemented
+	return c.service.GetAssetNFTOwner(ctx, tokenID)
 }
 
 func (c *assetClient) TransferAssetNFT(ctx context.Context, from, to string, tokenID *big.Int) (*types.TransactionResult, error) {
