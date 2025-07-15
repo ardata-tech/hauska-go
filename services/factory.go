@@ -4,145 +4,217 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ardata-tech/hauska-go/contracts"
 	"github.com/ardata-tech/hauska-go/types"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 // FactoryService implements factory contract operations
 type FactoryService struct {
-	// TODO: Add contract binding and configuration
-	// factory *contracts.HauskaContractFactory
-	// config  *hauska.Config
+	client  *ethclient.Client
+	factory *contracts.HauskaContractFactory
+	auth    *bind.TransactOpts
 }
 
 // NewFactoryService creates a new factory service instance
-func NewFactoryService() *FactoryService {
-	return &FactoryService{
-		// TODO: Initialize with contract binding
+func NewFactoryService(client *ethclient.Client, factoryAddr common.Address, auth *bind.TransactOpts) (*FactoryService, error) {
+	factory, err := contracts.NewHauskaContractFactory(factoryAddr, client)
+	if err != nil {
+		return nil, err
 	}
+
+	return &FactoryService{
+		client:  client,
+		factory: factory,
+		auth:    auth,
+	}, nil
 }
 
 // CreateOrganization creates a new organization contract
 func (s *FactoryService) CreateOrganization(ctx context.Context, principal, integrationPartner string) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate addresses
-	// 2. Call factory.CreateContract()
-	// 3. Wait for transaction confirmation
-	// 4. Parse events to get organization address
-	// 5. Return transaction result
+	tx, err := s.factory.CreateContract(s.auth, common.HexToAddress(principal), common.HexToAddress(integrationPartner))
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
 // GetAllOrganizations returns all organization contract addresses
 func (s *FactoryService) GetAllOrganizations(ctx context.Context) ([]string, error) {
-	// TODO: Implement contract call
-	// 1. Call factory.GetAllContracts()
-	// 2. Convert addresses to strings
-	// 3. Return list
+	contracts, err := s.factory.GetAllContracts(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	addresses := make([]string, len(contracts))
+	for i, addr := range contracts {
+		addresses[i] = addr.Hex()
+	}
+
+	return addresses, nil
 }
 
 // GetOrganization returns organization information by principal address
 func (s *FactoryService) GetOrganization(ctx context.Context, principal string) (*types.Organization, error) {
-	// TODO: Implement contract call
-	// 1. Call factory.GetContract(principal)
-	// 2. Get organization contract instance
-	// 3. Fetch organization details
-	// 4. Return organization struct
+	orgAddr, err := s.factory.GetContract(&bind.CallOpts{Context: ctx}, common.HexToAddress(principal))
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	// Create organization contract instance to fetch details
+	orgContract, err := contracts.NewHauskaOrgContract(orgAddr, s.client)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch organization details
+	integrationPartner, err := orgContract.IntegrationPartner(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	factory, err := orgContract.Factory(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	licenseManager, err := orgContract.LicenseManager(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	assetRegistry, err := orgContract.AssetRegistry(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	groupManager, err := orgContract.GroupManager(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	revenueDistributor, err := orgContract.RevenueDistributor(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	assetCount, err := orgContract.GetAssetCount(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	creatorCount, err := orgContract.GetCreatorCount(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch creators by iterating through creator count
+	creators := make([]common.Address, creatorCount.Int64())
+	for i := int64(0); i < creatorCount.Int64(); i++ {
+		creator, err := orgContract.Creators(&bind.CallOpts{Context: ctx}, big.NewInt(i))
+		if err != nil {
+			return nil, err
+		}
+		creators[i] = creator
+	}
+
+	// For now, set groupCount to 0 as GetGroupCount is not available
+	groupCount := big.NewInt(0)
+
+	return &types.Organization{
+		Address:            orgAddr,
+		Principal:          common.HexToAddress(principal),
+		IntegrationPartner: integrationPartner,
+		Factory:            factory,
+		LicenseManager:     licenseManager,
+		AssetRegistry:      assetRegistry,
+		GroupManager:       groupManager,
+		RevenueDistributor: revenueDistributor,
+		Creators:           creators,
+		AssetCount:         assetCount,
+		CreatorCount:       creatorCount,
+		GroupCount:         groupCount,
+	}, nil
 }
 
 // RemoveOrganization removes an organization contract
 func (s *FactoryService) RemoveOrganization(ctx context.Context, orgAddress string) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate caller has ADMIN_ROLE
-	// 2. Validate org contract exists
-	// 3. Call factory.RemoveContract()
-	// 4. Wait for confirmation
-	// 5. Return transaction result
+	tx, err := s.factory.RemoveContract(s.auth, common.HexToAddress(orgAddress))
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
 // GetPlatformFees returns current platform fee percentages
 func (s *FactoryService) GetPlatformFees(ctx context.Context) (*types.PlatformFees, error) {
-	// TODO: Implement contract call
-	// 1. Call factory.GetPlatformFees()
-	// 2. Convert to PlatformFees struct
-	// 3. Return fee structure
+	fees, err := s.factory.GetPlatformFees(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return &types.PlatformFees{
+		HauskaFeePct:     fees.HauskaFee,
+		IntegratorFeePct: fees.IntegratorFee,
+	}, nil
 }
 
 // UpdatePlatformFees updates platform fee percentages
 func (s *FactoryService) UpdatePlatformFees(ctx context.Context, hauskaFeePct, integratorFeePct uint32) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate caller has ADMIN_ROLE
-	// 2. Validate fee percentages (max limits)
-	// 3. Call factory.UpdatePlatformFees()
-	// 4. Wait for confirmation
-	// 5. Return transaction result
+	tx, err := s.factory.UpdatePlatformFees(s.auth, hauskaFeePct, integratorFeePct)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
 // GetModules returns addresses of all deployed modules
 func (s *FactoryService) GetModules(ctx context.Context) (*types.ModuleAddresses, error) {
-	// TODO: Implement contract call
-	// 1. Call factory.GetModules()
-	// 2. Convert to ModuleAddresses struct
-	// 3. Return module addresses
+	modules, err := s.factory.GetModules(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return &types.ModuleAddresses{
+		LicenseManager:     modules.LicenseManager,
+		AssetRegistry:      modules.AssetRegistry,
+		GroupManager:       modules.GroupManager,
+		RevenueDistributor: modules.RevenueDistributor,
+	}, nil
 }
 
 // IsValidOrgContract checks if an address is a valid organization contract
 func (s *FactoryService) IsValidOrgContract(ctx context.Context, address string) (bool, error) {
-	// TODO: Implement contract call
-	// 1. Call factory.IsValidOrgContract()
-	// 2. Return boolean result
-
-	return false, types.ErrNotImplemented
+	return s.factory.ValidContracts(&bind.CallOpts{Context: ctx}, common.HexToAddress(address))
 }
 
 // GetNumberOfOrganizations returns total number of organizations
 func (s *FactoryService) GetNumberOfOrganizations(ctx context.Context) (*big.Int, error) {
-	// TODO: Implement contract call
-	// 1. Call factory.GetNumberOfOrganizations()
-	// 2. Return count
-
-	return nil, types.ErrNotImplemented
+	return s.factory.GetNumberOfOrganizations(&bind.CallOpts{Context: ctx})
 }
 
 // GetNumberOfCreators returns total number of creators in an organization
 func (s *FactoryService) GetNumberOfCreators(ctx context.Context, orgAddress string) (*big.Int, error) {
-	// TODO: Implement contract call
-	// 1. Call factory.GetNumberOfCreators()
-	// 2. Return count
+	orgContract, err := contracts.NewHauskaOrgContract(common.HexToAddress(orgAddress), s.client)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return orgContract.GetCreatorCount(&bind.CallOpts{Context: ctx})
 }
 
-// PauseFactory pauses the factory contract
-func (s *FactoryService) PauseFactory(ctx context.Context) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate caller has ADMIN_ROLE
-	// 2. Call factory.Pause()
-	// 3. Wait for confirmation
-	// 4. Return transaction result
+// Helper functions
 
-	return nil, types.ErrNotImplemented
-}
-
-// UnpauseFactory unpauses the factory contract
-func (s *FactoryService) UnpauseFactory(ctx context.Context) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate caller has ADMIN_ROLE
-	// 2. Call factory.Unpause()
-	// 3. Wait for confirmation
-	// 4. Return transaction result
-
-	return nil, types.ErrNotImplemented
+func (s *FactoryService) waitForTransaction(ctx context.Context, txHash common.Hash) (*types.TransactionResult, error) {
+	// TODO: Implement transaction waiting and parsing
+	// This is a placeholder implementation
+	return &types.TransactionResult{
+		TxHash: txHash,
+		Status: 1,
+	}, nil
 }

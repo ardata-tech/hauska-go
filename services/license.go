@@ -4,21 +4,32 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ardata-tech/hauska-go/contracts"
 	"github.com/ardata-tech/hauska-go/types"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 // LicenseService implements license management operations
 type LicenseService struct {
-	// TODO: Add contract binding and configuration
-	// licenseManager *contracts.HauskaLicenseManager
-	// config         *hauska.Config
+	client         *ethclient.Client
+	licenseManager *contracts.HauskaLicenseManager
+	auth           *bind.TransactOpts
 }
 
 // NewLicenseService creates a new license service instance
-func NewLicenseService() *LicenseService {
-	return &LicenseService{
-		// TODO: Initialize with contract binding
+func NewLicenseService(client *ethclient.Client, licenseManagerAddr common.Address, auth *bind.TransactOpts) (*LicenseService, error) {
+	licenseManager, err := contracts.NewHauskaLicenseManager(licenseManagerAddr, client)
+	if err != nil {
+		return nil, err
 	}
+
+	return &LicenseService{
+		client:         client,
+		licenseManager: licenseManager,
+		auth:           auth,
+	}, nil
 }
 
 // GetLicense returns license details by ID
