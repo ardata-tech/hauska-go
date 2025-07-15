@@ -41,6 +41,53 @@ sdk/
 
 ---
 
+## 🏗️ Architecture Overview
+
+The Hauska Go SDK follows a **layered architecture** that provides clean separation of concerns and intuitive APIs for blockchain interaction:
+
+```text
+┌─────────────────────────────────────┐
+│           SDK (main.go)             │  ← Main entry point
+├─────────────────────────────────────┤
+│         Clients (client/)           │  ← High-level API layer
+├─────────────────────────────────────┤
+│        Services (services/)         │  ← Business logic layer
+├─────────────────────────────────────┤
+│       Contracts (contracts/)        │  ← Auto-generated bindings
+├─────────────────────────────────────┤
+│        Ethereum Blockchain          │  ← Smart contracts
+└─────────────────────────────────────┘
+```
+
+### Component Responsibilities
+
+* **`types/`**: Core data structures, domain models, and shared interfaces
+* **`contracts/`**: Auto-generated contract bindings (via `abigen`) for direct blockchain interaction
+* **`services/`**: Business logic layer handling transaction management, validation, and error handling
+* **`client/`**: High-level, user-friendly API abstractions over service operations
+* **`utils/`**: Utility functions for address validation, amount conversions, and common operations
+* **`config.go`**: Centralized configuration with Ethereum client setup and contract addresses
+
+### Communication Flow
+
+```go
+// User calls SDK
+sdk.Factory.CreateOrganization(ctx, principal, partner)
+       ↓
+// Client delegates to service
+factoryClient.service.CreateOrganization(ctx, principal, partner)
+       ↓
+// Service calls contract binding
+factoryContract.CreateContract(opts, principal, partner)
+       ↓
+// Contract binding makes blockchain call
+ethereum.Call() → Smart Contract on blockchain
+```
+
+This design provides **separation of concerns**, **testability**, and **extensibility** while maintaining clean, intuitive APIs for developers.
+
+---
+
 ## 🔧 Configuration
 
 ```go

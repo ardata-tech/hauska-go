@@ -1,0 +1,142 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# Go modules download cache
+*.sum
+
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# Folders
+_obj
+_test
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+# cgo generated files
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+
+# Test files
+*_test_data/
+test_data/
+testdata/
+
+# Coverage reports
+coverage.txt
+coverage.html
+*.cover
+*.coverprofile
+
+# Benchmarking
+*.bench
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS generated files
+.DS_Store?
+ehthumbs.db
+Icon?
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Blockchain specific
+# Private keys and sensitive data
+*.key
+*.pem
+keystore/
+keys/
+secrets/
+.secrets/
+
+# Local blockchain data
+ganache-db/
+geth-data/
+blockchain-data/
+
+# Contract artifacts (if not using version control for them)
+# Uncomment if you don't want to track compiled contracts
+# artifacts/
+# cache/
+# typechain/
+
+# Build outputs
+build/
+dist/
+out/
+
+# Documentation build
+docs/_build/
+site/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Local config files
+config.local.*
+local.config.*
+
+# Examples with sensitive data
+examples/config.go
+examples/*.key
+examples/.env
+
+# Performance profiling
+cpu.prof
+mem.prof
+*.prof
+
+# GoReleaser
+dist/
+*.tar.gz
+*.zip
+
+# Air live reloading
+tmp/
