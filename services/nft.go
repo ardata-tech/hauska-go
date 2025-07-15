@@ -4,139 +4,158 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ardata-tech/hauska-go/contracts"
 	"github.com/ardata-tech/hauska-go/types"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 // NFTService implements NFT-related operations for both Asset and License NFTs
 type NFTService struct {
-	// TODO: Add contract bindings and configuration
-	// assetNFT   *contracts.HauskaAssetNFT
-	// licenseNFT *contracts.HauskaLicenseNFT
-	// config     *hauska.Config
+	client   *ethclient.Client
+	assetNFT *contracts.HauskaAssetNFT
+	auth     *bind.TransactOpts
 }
 
 // NewNFTService creates a new NFT service instance
-func NewNFTService() *NFTService {
-	return &NFTService{
-		// TODO: Initialize with contract bindings
+func NewNFTService(client *ethclient.Client, assetNFTAddr common.Address, auth *bind.TransactOpts) (*NFTService, error) {
+	assetNFT, err := contracts.NewHauskaAssetNFT(assetNFTAddr, client)
+	if err != nil {
+		return nil, err
 	}
+
+	return &NFTService{
+		client:   client,
+		assetNFT: assetNFT,
+		auth:     auth,
+	}, nil
 }
 
 // Asset NFT Methods
 
 // GetAssetNFTOwner returns the owner of an asset NFT
 func (s *NFTService) GetAssetNFTOwner(ctx context.Context, tokenID *big.Int) (string, error) {
-	// TODO: Implement contract call
-	// 1. Call assetNFT.OwnerOf()
-	// 2. Return owner address as string
-
-	return "", types.ErrNotImplemented
+	owner, err := s.assetNFT.OwnerOf(&bind.CallOpts{Context: ctx}, tokenID)
+	if err != nil {
+		return "", err
+	}
+	return owner.Hex(), nil
 }
 
 // GetAssetNFTTokenURI returns the token URI for an asset NFT
 func (s *NFTService) GetAssetNFTTokenURI(ctx context.Context, tokenID *big.Int) (string, error) {
-	// TODO: Implement contract call
-	// 1. Call assetNFT.TokenURI()
-	// 2. Return URI string
-
-	return "", types.ErrNotImplemented
+	return s.assetNFT.TokenURI(&bind.CallOpts{Context: ctx}, tokenID)
 }
 
 // GetAssetNFTTokenID returns the token ID for a specific asset
 func (s *NFTService) GetAssetNFTTokenID(ctx context.Context, orgContract string, assetID *big.Int) (*big.Int, error) {
-	// TODO: Implement contract call
-	// 1. Call assetNFT.GetTokenIdForAsset()
-	// 2. Return token ID
-
-	return nil, types.ErrNotImplemented
+	return s.assetNFT.GetTokenIdForAsset(&bind.CallOpts{Context: ctx}, common.HexToAddress(orgContract), assetID)
 }
 
 // TransferAssetNFT transfers an asset NFT to a new owner
 func (s *NFTService) TransferAssetNFT(ctx context.Context, from, to string, tokenID *big.Int) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Call assetNFT.SafeTransferFrom()
-	// 2. Wait for transaction confirmation
-	// 3. Return transaction result
+	tx, err := s.assetNFT.SafeTransferFrom(s.auth, common.HexToAddress(from), common.HexToAddress(to), tokenID)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
 // ApproveAssetNFT approves another address to transfer a specific asset NFT
 func (s *NFTService) ApproveAssetNFT(ctx context.Context, to string, tokenID *big.Int) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Call assetNFT.Approve()
-	// 2. Wait for transaction confirmation
-	// 3. Return transaction result
+	tx, err := s.assetNFT.Approve(s.auth, common.HexToAddress(to), tokenID)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
-// License NFT Methods
-
-// GetLicenseNFTOwner returns the owner of a license NFT
-func (s *NFTService) GetLicenseNFTOwner(ctx context.Context, tokenID *big.Int) (string, error) {
-	// TODO: Implement contract call
-	// 1. Call licenseNFT.OwnerOf()
-	// 2. Return owner address as string
-
-	return "", types.ErrNotImplemented
+// GetAssetNFTBalance returns the NFT balance for an address
+func (s *NFTService) GetAssetNFTBalance(ctx context.Context, owner string) (*big.Int, error) {
+	return s.assetNFT.BalanceOf(&bind.CallOpts{Context: ctx}, common.HexToAddress(owner))
 }
 
-// GetLicenseNFTDetails returns detailed information about a license NFT
-func (s *NFTService) GetLicenseNFTDetails(ctx context.Context, tokenID *big.Int) (*types.NFTLicenseInfo, error) {
-	// TODO: Implement contract call
-	// 1. Call licenseNFT.GetLicenseDetails()
-	// 2. Convert to NFTLicenseInfo struct
-	// 3. Return license details
-
-	return nil, types.ErrNotImplemented
+// GetAssetNFTApproved returns the approved address for a token ID
+func (s *NFTService) GetAssetNFTApproved(ctx context.Context, tokenID *big.Int) (string, error) {
+	approved, err := s.assetNFT.GetApproved(&bind.CallOpts{Context: ctx}, tokenID)
+	if err != nil {
+		return "", err
+	}
+	return approved.Hex(), nil
 }
 
-// GetUserLicenseNFTs returns all license NFTs owned by a user
-func (s *NFTService) GetUserLicenseNFTs(ctx context.Context, user string) ([]*big.Int, error) {
-	// TODO: Implement contract call
-	// 1. Call licenseNFT.GetUserLicenses()
-	// 2. Return token IDs array
-
-	return nil, types.ErrNotImplemented
+// IsAssetNFTApprovedForAll returns whether the operator is approved for all tokens of the owner
+func (s *NFTService) IsAssetNFTApprovedForAll(ctx context.Context, owner, operator string) (bool, error) {
+	return s.assetNFT.IsApprovedForAll(&bind.CallOpts{Context: ctx}, common.HexToAddress(owner), common.HexToAddress(operator))
 }
 
-// TransferLicenseNFT transfers a license NFT to a new owner
-func (s *NFTService) TransferLicenseNFT(ctx context.Context, from, to string, tokenID *big.Int) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Call licenseNFT.SafeTransferFrom()
-	// 2. Wait for transaction confirmation
-	// 3. Return transaction result
+// SetAssetNFTApprovalForAll sets or unsets the approval of a given operator
+func (s *NFTService) SetAssetNFTApprovalForAll(ctx context.Context, operator string, approved bool) (*types.TransactionResult, error) {
+	tx, err := s.assetNFT.SetApprovalForAll(s.auth, common.HexToAddress(operator), approved)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
-// ApproveLicenseNFT approves another address to transfer a specific license NFT
-func (s *NFTService) ApproveLicenseNFT(ctx context.Context, to string, tokenID *big.Int) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Call licenseNFT.Approve()
-	// 2. Wait for transaction confirmation
-	// 3. Return transaction result
+// MintAssetNFT mints a new asset NFT
+func (s *NFTService) MintAssetNFT(ctx context.Context, to, orgContract string, assetID *big.Int, uri string) (*types.TransactionResult, error) {
+	tx, err := s.assetNFT.MintAssetNFT(s.auth, common.HexToAddress(to), common.HexToAddress(orgContract), assetID, uri)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
-// GetLicenseNFTTokenURI returns the token URI for a license NFT
-func (s *NFTService) GetLicenseNFTTokenURI(ctx context.Context, tokenID *big.Int) (string, error) {
-	// TODO: Implement contract call
-	// 1. Call licenseNFT.TokenURI()
-	// 2. Return URI string
+// BurnAssetNFT burns an asset NFT
+func (s *NFTService) BurnAssetNFT(ctx context.Context, tokenID *big.Int) (*types.TransactionResult, error) {
+	tx, err := s.assetNFT.Burn(s.auth, tokenID)
+	if err != nil {
+		return nil, err
+	}
 
-	return "", types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
-// IsLicenseNFTActive checks if a license NFT is active
-func (s *NFTService) IsLicenseNFTActive(ctx context.Context, tokenID *big.Int) (bool, error) {
-	// TODO: Implement contract call
-	// 1. Call licenseNFT.IsLicenseActive()
-	// 2. Return boolean result
+// UpdateAssetNFTTokenURI updates the token URI for an asset NFT
+func (s *NFTService) UpdateAssetNFTTokenURI(ctx context.Context, tokenID *big.Int, uri string) (*types.TransactionResult, error) {
+	tx, err := s.assetNFT.UpdateTokenURI(s.auth, tokenID, uri)
+	if err != nil {
+		return nil, err
+	}
 
-	return false, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
+}
+
+// CheckAssetHasNFT checks if an asset has an associated NFT
+func (s *NFTService) CheckAssetHasNFT(ctx context.Context, orgContract string, assetID *big.Int) (bool, error) {
+	return s.assetNFT.AssetHasNFT(&bind.CallOpts{Context: ctx}, common.HexToAddress(orgContract), assetID)
+}
+
+// GetAssetNFTName returns the name of the NFT contract
+func (s *NFTService) GetAssetNFTName(ctx context.Context) (string, error) {
+	return s.assetNFT.Name(&bind.CallOpts{Context: ctx})
+}
+
+// GetAssetNFTSymbol returns the symbol of the NFT contract
+func (s *NFTService) GetAssetNFTSymbol(ctx context.Context) (string, error) {
+	return s.assetNFT.Symbol(&bind.CallOpts{Context: ctx})
+}
+
+// Helper functions
+
+func (s *NFTService) waitForTransaction(ctx context.Context, txHash common.Hash) (*types.TransactionResult, error) {
+	// TODO: Implement transaction waiting and parsing
+	// This is a placeholder implementation
+	return &types.TransactionResult{
+		TxHash: txHash,
+		Status: 1,
+	}, nil
 }
 
 // RevokeLicenseNFT revokes a license NFT (admin only)

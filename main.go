@@ -5,6 +5,7 @@ import (
 
 	"github.com/ardata-tech/hauska-go/client"
 	"github.com/ardata-tech/hauska-go/services"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // SDK is the main entry point for the Hauska Go SDK
@@ -43,14 +44,51 @@ func NewSDK(config *Config) (*SDK, error) {
 		return nil, err
 	}
 
-	// Initialize services
-	factoryService := services.NewFactoryService()
-	licenseService := services.NewLicenseService()
-	assetService := services.NewAssetService()
+	// Initialize services with proper parameters
+	factoryService, err := services.NewFactoryService(config.Client, config.FactoryAddress, config.Auth)
+	if err != nil {
+		return nil, err
+	}
+
+	usdcService, err := services.NewUSDCService(config.Client, config.USDCAddress, config.Auth)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get module addresses from factory if not provided
+	moduleAddresses := config.ModuleAddresses
+	if moduleAddresses == nil {
+		modules, err := factoryService.GetModules(context.Background())
+		if err != nil {
+			return nil, err
+		}
+		moduleAddresses = &ModuleAddresses{
+			LicenseManager:     modules.LicenseManager,
+			AssetRegistry:      modules.AssetRegistry,
+			GroupManager:       modules.GroupManager,
+			RevenueDistributor: modules.RevenueDistributor,
+			AssetNFT:           modules.AssetNFT,
+		}
+	}
+
+	licenseService, err := services.NewLicenseService(config.Client, moduleAddresses.LicenseManager, config.Auth)
+	if err != nil {
+		return nil, err
+	}
+
+	assetService, err := services.NewAssetService(config.Client, moduleAddresses.AssetRegistry, moduleAddresses.AssetNFT, config.Auth)
+	if err != nil {
+		return nil, err
+	}
+
+	nftService, err := services.NewNFTService(config.Client, moduleAddresses.AssetNFT, config.Auth)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize placeholder services (these need proper implementation later)
 	groupService := services.NewGroupService()
 	revenueService := services.NewRevenueService()
-	nftService := services.NewNFTService()
-	usdcService := services.NewUSDCService()
 
 	// Note: OrganizationService requires an organization address,
 	// so it will be created when needed via GetOrganization() method
@@ -91,10 +129,13 @@ func NewSDK(config *Config) (*SDK, error) {
 }
 
 // NewOrganizationClient creates a new organization client for a specific organization
-func (sdk *SDK) NewOrganizationClient(orgAddress string) client.OrganizationClient {
-	orgService := services.NewOrganizationService(orgAddress)
+func (sdk *SDK) NewOrganizationClient(orgAddress string) (client.OrganizationClient, error) {
+	orgService, err := services.NewOrganizationService(sdk.config.Client, common.HexToAddress(orgAddress), sdk.config.Auth)
+	if err != nil {
+		return nil, err
+	}
 	sdk.Services.Organization = orgService
-	return client.NewOrganizationClient(orgService)
+	return client.NewOrganizationClient(orgService), nil
 }
 
 // GetConfig returns the SDK configuration

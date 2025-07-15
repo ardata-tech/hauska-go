@@ -2,103 +2,86 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"strings"
 
+	"github.com/ardata-tech/hauska-go/contracts"
 	"github.com/ardata-tech/hauska-go/types"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 // USDCService implements USDC token operations
 type USDCService struct {
-	// TODO: Add contract binding and configuration
-	// usdcContract *contracts.IERC20
-	// config       *hauska.Config
+	client       *ethclient.Client
+	usdcContract *contracts.MockUSDC
+	auth         *bind.TransactOpts
 }
 
 // NewUSDCService creates a new USDC service instance
-func NewUSDCService() *USDCService {
-	return &USDCService{
-		// TODO: Initialize with contract binding
+func NewUSDCService(client *ethclient.Client, usdcAddr common.Address, auth *bind.TransactOpts) (*USDCService, error) {
+	usdcContract, err := contracts.NewMockUSDC(usdcAddr, client)
+	if err != nil {
+		return nil, err
 	}
+
+	return &USDCService{
+		client:       client,
+		usdcContract: usdcContract,
+		auth:         auth,
+	}, nil
 }
 
 // GetBalance returns USDC balance for an account
 func (s *USDCService) GetBalance(ctx context.Context, account string) (*big.Int, error) {
-	// TODO: Implement contract call
-	// 1. Validate account address
-	// 2. Call usdc.BalanceOf(account)
-	// 3. Return balance
-
-	return nil, types.ErrNotImplemented
+	return s.usdcContract.BalanceOf(&bind.CallOpts{Context: ctx}, common.HexToAddress(account))
 }
 
 // Transfer transfers USDC to another account
 func (s *USDCService) Transfer(ctx context.Context, to string, amount *big.Int) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate recipient address
-	// 2. Validate amount > 0
-	// 3. Call usdc.Transfer(to, amount)
-	// 4. Wait for confirmation
-	// 5. Return transaction result
+	tx, err := s.usdcContract.Transfer(s.auth, common.HexToAddress(to), amount)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
 // Approve approves spender to transfer USDC on behalf of caller
 func (s *USDCService) Approve(ctx context.Context, spender string, amount *big.Int) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate spender address
-	// 2. Call usdc.Approve(spender, amount)
-	// 3. Wait for confirmation
-	// 4. Return transaction result
+	tx, err := s.usdcContract.Approve(s.auth, common.HexToAddress(spender), amount)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, types.ErrNotImplemented
+	return s.waitForTransaction(ctx, tx.Hash())
 }
 
 // GetAllowance returns the allowance granted to spender by owner
 func (s *USDCService) GetAllowance(ctx context.Context, owner, spender string) (*big.Int, error) {
-	// TODO: Implement contract call
-	// 1. Validate addresses
-	// 2. Call usdc.Allowance(owner, spender)
-	// 3. Return allowance
-
-	return nil, types.ErrNotImplemented
+	return s.usdcContract.Allowance(&bind.CallOpts{Context: ctx}, common.HexToAddress(owner), common.HexToAddress(spender))
 }
 
 // GetDecimals returns the number of decimals for USDC
 func (s *USDCService) GetDecimals(ctx context.Context) (uint8, error) {
-	// TODO: Implement contract call
-	// 1. Call usdc.Decimals()
-	// 2. Return decimals (should be 6 for USDC)
-
-	return 0, types.ErrNotImplemented
+	return s.usdcContract.Decimals(&bind.CallOpts{Context: ctx})
 }
 
 // GetSymbol returns the token symbol
 func (s *USDCService) GetSymbol(ctx context.Context) (string, error) {
-	// TODO: Implement contract call
-	// 1. Call usdc.Symbol()
-	// 2. Return symbol (should be "USDC")
-
-	return "", types.ErrNotImplemented
+	return s.usdcContract.Symbol(&bind.CallOpts{Context: ctx})
 }
 
 // GetName returns the token name
 func (s *USDCService) GetName(ctx context.Context) (string, error) {
-	// TODO: Implement contract call
-	// 1. Call usdc.Name()
-	// 2. Return name
-
-	return "", types.ErrNotImplemented
+	return s.usdcContract.Name(&bind.CallOpts{Context: ctx})
 }
 
 // GetTotalSupply returns the total supply of USDC
 func (s *USDCService) GetTotalSupply(ctx context.Context) (*big.Int, error) {
-	// TODO: Implement contract call
-	// 1. Call usdc.TotalSupply()
-	// 2. Return total supply
-
-	return nil, types.ErrNotImplemented
+	return s.usdcContract.TotalSupply(&bind.CallOpts{Context: ctx})
 }
 
 // FormatAmount formats a USDC amount from wei to human-readable format
@@ -134,10 +117,42 @@ func (s *USDCService) FormatAmount(amount *big.Int) string {
 
 // ParseAmount parses a human-readable USDC amount to wei
 func (s *USDCService) ParseAmount(amount string) (*big.Int, error) {
-	// TODO: Implement amount parsing
-	// 1. Handle decimal point
-	// 2. Convert to big.Int with 6 decimals
-	// 3. Return parsed amount
+	parts := strings.Split(amount, ".")
+	if len(parts) > 2 {
+		return nil, fmt.Errorf("invalid amount format")
+	}
 
-	return nil, types.ErrNotImplemented
+	integerPart := parts[0]
+	fractionalPart := ""
+	if len(parts) == 2 {
+		fractionalPart = parts[1]
+	}
+
+	// Pad or truncate fractional part to 6 digits
+	for len(fractionalPart) < 6 {
+		fractionalPart += "0"
+	}
+	if len(fractionalPart) > 6 {
+		fractionalPart = fractionalPart[:6]
+	}
+
+	// Convert to big.Int
+	fullAmount := integerPart + fractionalPart
+	result, ok := new(big.Int).SetString(fullAmount, 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid amount format")
+	}
+
+	return result, nil
+}
+
+// Helper functions
+
+func (s *USDCService) waitForTransaction(ctx context.Context, txHash common.Hash) (*types.TransactionResult, error) {
+	// TODO: Implement transaction waiting and parsing
+	// This is a placeholder implementation
+	return &types.TransactionResult{
+		TxHash: txHash,
+		Status: 1,
+	}, nil
 }
