@@ -7,7 +7,7 @@ This directory contains examples demonstrating how to use the Hauska Go SDK with
 All examples are configured to work with a GoChain network using the following settings:
 
 - **Network Name**: GoChain
-- **RPC URL**: http://localhost:8545
+- **RPC URL**: <http://localhost:8545>
 - **Chain ID**: 31337
 - **Currency**: GO
 - **Test Address**: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
