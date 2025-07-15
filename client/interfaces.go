@@ -108,12 +108,18 @@ type GroupClient interface {
 	// Group operations
 	CreateAssetGroup(ctx context.Context, orgContract, groupName string, assetIDs []*big.Int, groupPrice *big.Int, creator string) (*types.TransactionResult, error)
 	GetAssetGroup(ctx context.Context, orgContract string, groupID *big.Int) (*types.AssetGroup, error)
+	GetGroup(ctx context.Context, orgContract string, groupID *big.Int) (*types.AssetGroup, error) // Alias for GetAssetGroup
 	GetGroupsByCreator(ctx context.Context, orgContract, creator string) ([]*big.Int, error)
 	AddAssetToGroup(ctx context.Context, orgContract string, groupID, assetID *big.Int, caller string) (*types.TransactionResult, error)
 	RemoveAssetFromGroup(ctx context.Context, orgContract string, groupID, assetID *big.Int, caller string) (*types.TransactionResult, error)
 	UpdateGroupPrice(ctx context.Context, orgContract string, groupID *big.Int, newPrice *big.Int, caller string) (*types.TransactionResult, error)
 	RemoveAssetGroup(ctx context.Context, orgContract string, groupID *big.Int, caller string) (*types.TransactionResult, error)
 	GetGroupCount(ctx context.Context, orgContract string) (*big.Int, error)
+	
+	// Helper methods
+	IsGroupActive(ctx context.Context, orgContract string, groupID *big.Int) (bool, error)
+	GetGroupAssets(ctx context.Context, orgContract string, groupID *big.Int) ([]*big.Int, error)
+	CalculateGroupLicenseFee(ctx context.Context, orgContract string, groupID *big.Int) (*big.Int, error)
 }
 
 // RevenueClient provides high-level access to revenue distribution operations

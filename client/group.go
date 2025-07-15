@@ -52,3 +52,20 @@ func (c *groupClient) RemoveAssetGroup(ctx context.Context, orgContract string, 
 func (c *groupClient) GetGroupCount(ctx context.Context, orgContract string) (*big.Int, error) {
 	return c.service.GetGroupCount(ctx, orgContract)
 }
+
+// Alias methods and helpers
+func (c *groupClient) GetGroup(ctx context.Context, orgContract string, groupID *big.Int) (*types.AssetGroup, error) {
+	return c.service.GetGroup(ctx, orgContract, groupID)
+}
+
+func (c *groupClient) IsGroupActive(ctx context.Context, orgContract string, groupID *big.Int) (bool, error) {
+	return c.service.IsGroupActive(ctx, orgContract, groupID)
+}
+
+func (c *groupClient) GetGroupAssets(ctx context.Context, orgContract string, groupID *big.Int) ([]*big.Int, error) {
+	return c.service.GetGroupAssets(ctx, orgContract, groupID)
+}
+
+func (c *groupClient) CalculateGroupLicenseFee(ctx context.Context, orgContract string, groupID *big.Int) (*big.Int, error) {
+	return c.service.CalculateGroupLicenseFee(ctx, orgContract, groupID)
+}

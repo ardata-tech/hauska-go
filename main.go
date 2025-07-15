@@ -86,8 +86,11 @@ func NewSDK(config *Config) (*SDK, error) {
 		return nil, err
 	}
 
-	// Initialize placeholder services (these need proper implementation later)
-	groupService := services.NewGroupService()
+	groupService, err := services.NewGroupService(config.Client, moduleAddresses.GroupManager, config.Auth)
+	if err != nil {
+		return nil, err
+	}
+
 	revenueService := services.NewRevenueService()
 
 	// Note: OrganizationService requires an organization address,
