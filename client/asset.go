@@ -29,12 +29,20 @@ func (c *assetClient) GetRegisteredAsset(ctx context.Context, orgContract string
 	return c.service.GetAsset(ctx, orgContract, assetID)
 }
 
+func (c *assetClient) GetAsset(ctx context.Context, orgContract string, assetID *big.Int) (*types.VerifiedDigitalAsset, error) {
+	return c.service.GetAsset(ctx, orgContract, assetID)
+}
+
 func (c *assetClient) IsAssetVerified(ctx context.Context, orgContract string, assetID *big.Int) (bool, error) {
 	return c.service.IsAssetVerified(ctx, orgContract, assetID)
 }
 
 func (c *assetClient) GetAssetsByCreator(ctx context.Context, orgContract, creator string) ([]*big.Int, error) {
 	return c.service.GetAssetsByCreator(ctx, orgContract, creator)
+}
+
+func (c *assetClient) GetAssetsByOwner(ctx context.Context, orgContract, owner string) ([]*big.Int, error) {
+	return c.service.GetAssetsByOwner(ctx, orgContract, owner)
 }
 
 func (c *assetClient) TransferAssetOwnership(ctx context.Context, orgContract string, assetID *big.Int, newOwner, caller string) (*types.TransactionResult, error) {

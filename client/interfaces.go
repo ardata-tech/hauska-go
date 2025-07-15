@@ -90,8 +90,10 @@ type AssetClient interface {
 	// Asset registry operations
 	RegisterAsset(ctx context.Context, orgContract string, asset *types.VerifiedDigitalAsset, creator string) (*types.TransactionResult, error)
 	GetRegisteredAsset(ctx context.Context, orgContract string, assetID *big.Int) (*types.VerifiedDigitalAsset, error)
+	GetAsset(ctx context.Context, orgContract string, assetID *big.Int) (*types.VerifiedDigitalAsset, error) // Alias for GetRegisteredAsset
 	IsAssetVerified(ctx context.Context, orgContract string, assetID *big.Int) (bool, error)
 	GetAssetsByCreator(ctx context.Context, orgContract, creator string) ([]*big.Int, error)
+	GetAssetsByOwner(ctx context.Context, orgContract, owner string) ([]*big.Int, error)
 	TransferAssetOwnership(ctx context.Context, orgContract string, assetID *big.Int, newOwner, caller string) (*types.TransactionResult, error)
 
 	// Cross-organization operations
@@ -115,7 +117,7 @@ type GroupClient interface {
 	UpdateGroupPrice(ctx context.Context, orgContract string, groupID *big.Int, newPrice *big.Int, caller string) (*types.TransactionResult, error)
 	RemoveAssetGroup(ctx context.Context, orgContract string, groupID *big.Int, caller string) (*types.TransactionResult, error)
 	GetGroupCount(ctx context.Context, orgContract string) (*big.Int, error)
-	
+
 	// Helper methods
 	IsGroupActive(ctx context.Context, orgContract string, groupID *big.Int) (bool, error)
 	GetGroupAssets(ctx context.Context, orgContract string, groupID *big.Int) ([]*big.Int, error)

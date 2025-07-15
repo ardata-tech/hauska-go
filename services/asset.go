@@ -121,6 +121,16 @@ func (s *AssetService) GetAssetsByCreator(ctx context.Context, orgContract, crea
 	return s.assetRegistry.GetAssetsByCreator(&bind.CallOpts{Context: ctx}, common.HexToAddress(orgContract), common.HexToAddress(creator))
 }
 
+// GetAssetsByOwner returns all assets owned by a specific owner
+func (s *AssetService) GetAssetsByOwner(ctx context.Context, orgContract, owner string) ([]*big.Int, error) {
+	// Get the organization contract instance
+	orgContractInstance, err := contracts.NewHauskaOrgContract(common.HexToAddress(orgContract), s.client)
+	if err != nil {
+		return nil, err
+	}
+	return orgContractInstance.GetAssetsByOwner(&bind.CallOpts{Context: ctx}, common.HexToAddress(owner))
+}
+
 // TransferAssetOwnership transfers ownership of an asset
 func (s *AssetService) TransferAssetOwnership(ctx context.Context, orgContract string, assetID *big.Int, newOwner, caller string) (*types.TransactionResult, error) {
 	tx, err := s.assetRegistry.TransferAssetOwnership(s.auth, common.HexToAddress(orgContract), assetID, common.HexToAddress(newOwner), common.HexToAddress(caller))
