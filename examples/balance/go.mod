@@ -1,4 +1,4 @@
-module hauska_balance
+module balance
 
 go 1.23.0
 

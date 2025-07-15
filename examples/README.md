@@ -14,31 +14,21 @@ All examples are configured to work with a GoChain network using the following s
 
 ## Examples
 
-### 1. Basic Balance Check (`basic_balance/`)
+### Balance Check (`balance/`)
 
-A simple example that demonstrates how to:
-- Connect to a GoChain network
+An example that demonstrates how to:
+
+- Set up the Hauska SDK configuration for GoChain
+- Connect to the network using the SDK structure
 - Fetch the ETH (GO) balance of an address
 - Convert wei to GO currency
 - Display network information
-
-**To run:**
-```bash
-cd examples/basic_balance
-go run main.go
-```
-
-### 2. Hauska SDK Integration (`hauska_balance/`)
-
-A more advanced example that shows how to:
-- Set up the Hauska SDK configuration for GoChain
-- Connect to the network using the SDK structure
-- Fetch balance information
 - Prepare for full Hauska contract integration
 
 **To run:**
+
 ```bash
-cd examples/hauska_balance
+cd examples/balance
 go run main.go
 ```
 

@@ -107,13 +107,6 @@ func main() {
 	// if err != nil {
 	//     log.Fatalf("Failed to create SDK: %v", err)
 	// }
-
-	fmt.Printf("\n✓ Example completed successfully!\n")
-	fmt.Printf("\nNext steps:\n")
-	fmt.Printf("1. Deploy Hauska contracts to your GoChain network\n")
-	fmt.Printf("2. Update contract addresses in the configuration\n")
-	fmt.Printf("3. Add authentication for transaction signing\n")
-	fmt.Printf("4. Use the full Hauska SDK functionality\n")
 }
 
 // weiToGO converts wei to GO (equivalent to ETH conversion)
