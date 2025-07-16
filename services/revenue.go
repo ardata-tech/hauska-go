@@ -4,21 +4,47 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ardata-tech/hauska-go/contracts"
 	"github.com/ardata-tech/hauska-go/types"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 // RevenueService implements revenue distribution operations
 type RevenueService struct {
-	// TODO: Add contract binding and configuration
-	// revenueDistributor *contracts.HauskaRevenueDistributor
-	// config             *hauska.Config
+	client             *ethclient.Client
+	revenueDistributor *contracts.HauskaRevenueDistributor
+	auth               *bind.TransactOpts
 }
 
 // NewRevenueService creates a new revenue service instance
-func NewRevenueService() *RevenueService {
-	return &RevenueService{
-		// TODO: Initialize with contract binding
+func NewRevenueService(client *ethclient.Client, revenueDistributorAddr common.Address, auth *bind.TransactOpts) (*RevenueService, error) {
+	revenueDistributor, err := contracts.NewHauskaRevenueDistributor(revenueDistributorAddr, client)
+	if err != nil {
+		return nil, err
 	}
+
+	return &RevenueService{
+		client:             client,
+		revenueDistributor: revenueDistributor,
+		auth:               auth,
+	}, nil
+}
+
+// WithdrawEarnings withdraws earnings for an account
+func (s *RevenueService) WithdrawEarnings(ctx context.Context, account string) (*types.TransactionResult, error) {
+	// Update nonce before transaction
+	nonce, err := s.client.PendingNonceAt(ctx, s.auth.From)
+	if err != nil {
+		return nil, err
+	}
+	s.auth.Nonce = big.NewInt(int64(nonce))
+
+	// Note: This assumes there's a withdrawEarnings method in the contract
+	// You may need to check the actual contract implementation
+	// For now, we'll implement this as a placeholder
+	return nil, types.ErrNotImplemented
 }
 
 // DistributeRevenue distributes revenue among stakeholders
@@ -107,17 +133,6 @@ func (s *RevenueService) GetIntegratorEarnings(ctx context.Context, integrator s
 	// TODO: Implement contract call
 	// 1. Call revenueDistributor.GetIntegratorEarnings()
 	// 2. Return integrator earnings
-
-	return nil, types.ErrNotImplemented
-}
-
-// WithdrawEarnings allows accounts to withdraw their earnings
-func (s *RevenueService) WithdrawEarnings(ctx context.Context, account string, amount *big.Int) (*types.TransactionResult, error) {
-	// TODO: Implement contract call
-	// 1. Validate withdrawal amount
-	// 2. Call revenueDistributor.WithdrawEarnings()
-	// 3. Wait for transaction confirmation
-	// 4. Return transaction result
 
 	return nil, types.ErrNotImplemented
 }

@@ -91,7 +91,10 @@ func NewSDK(config *Config) (*SDK, error) {
 		return nil, err
 	}
 
-	revenueService := services.NewRevenueService()
+	// Create revenue service (requires revenue distributor address - placeholder for now)
+	var revenueService *services.RevenueService
+	// Note: RevenueService will be created when needed via GetRevenue() method
+	// since it requires a revenue distributor address
 
 	// Note: OrganizationService requires an organization address,
 	// so it will be created when needed via GetOrganization() method
@@ -101,7 +104,6 @@ func NewSDK(config *Config) (*SDK, error) {
 	licenseClient := client.NewLicenseClient(licenseService)
 	assetClient := client.NewAssetClient(assetService)
 	groupClient := client.NewGroupClient(groupService)
-	revenueClient := client.NewRevenueClient(revenueService)
 	usdcClient := client.NewUSDCClient(usdcService)
 
 	// Create SDK instance
@@ -113,7 +115,7 @@ func NewSDK(config *Config) (*SDK, error) {
 		License: licenseClient,
 		Asset:   assetClient,
 		Group:   groupClient,
-		Revenue: revenueClient,
+		Revenue: nil, // Will be set when needed
 		USDC:    usdcClient,
 
 		// Low-level services
